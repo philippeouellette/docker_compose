@@ -1,0 +1,62 @@
+version: "3.3"
+
+services:
+
+  mariadb:
+    image: "linuxserver/mariadb:110.4.12mariabionic-ls60"
+    container_name: "nextcloud_db"
+    hostname: mariadb
+    volumes:
+        - ${DOCKER_CONFIG_DIR}/nextcloud/mariadb:/config
+    ports:
+      - target: 3306
+        published: 3306
+        protocol: tcp
+        mode: host
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+
+#####################################################
+
+  nextcloud:
+    hostname: nextcloud
+    container_name: nextcloud
+    restart: always
+    image: linuxserver/nextcloud
+    ports:
+     - 8001:443
+    links:
+      - mariadb
+    volumes:
+      - ${DOCKER_CONFIG_DIR}/nextcloud/nextcloud:/config
+      - ${NEXTCLOUD_DIR}:/data
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+      ## TCP Routers
+      - "traefik.tcp.routers.nextcloud-tcp.entrypoints=https"
+      - "traefik.tcp.routers.nextcloud-tcp.rule=HostSNI(`cloud.$DOMAINNAME`)"
+      - "traefik.tcp.routers.nextcloud-tcp.tls=true"
+      - "traefik.tcp.routers.nextcloud-tcp.tls.certresolver=dns-cloudflare"
+      - "traefik.tcp.routers.nextcloud-tcp.tls.passthrough=true"
+      ## TCP Services
+      - "traefik.tcp.routers.nextcloud-tcp.service=nextcloud-tcp-svc"
+      - "traefik.tcp.services.nextcloud-tcp-svc.loadbalancer.server.port=443"
+      ## dav redirection
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+
+
+########################################################
+
+
