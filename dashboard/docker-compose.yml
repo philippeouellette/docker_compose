@@ -1,0 +1,17 @@
+version: "3.3"
+
+services:
+
+#################################################
+  heimdall:
+    container_name: heimdall
+    image: linuxserver/heimdall
+    restart: unless-stopped
+    ports:
+      - 8004:80
+    volumes:
+      - ${DOCKER_CONFIG_DIR}/heimdall:/config
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - TZ=$TZ

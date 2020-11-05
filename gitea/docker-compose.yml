@@ -1,16 +1,14 @@
 version: "2"
 
-networks:
-  gitea:
-    external: false
-#test
 services:
+
   server:
     image: gitea/gitea:latest
     container_name: gitea_server
     environment:
-      - USER_UID=1000
-      - USER_GID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
       - DB_TYPE=mysql
       - DB_HOST=db:3306
       - DB_NAME=gitea
@@ -18,16 +16,25 @@ services:
       - DB_PASSWD=gitea
     restart: always
     networks:
-      - gitea
+      - t2_proxy
     volumes:
       - ${DOCKER_CONFIG_DIR}/gitea/gitea:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
        - "3000:3000"
-       - "222:22"
     depends_on:
       - db
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.gitea-rtr.entrypoints=https"
+      - "traefik.http.routers.gitea-rtr.rule=Host(`gitea.$DOMAINNAME`)"
+      - "traefik.http.routers.gitea-rtr.tls=true"
+      ## HTTP Services
+      - "traefik.http.routers.gitea-rtr.service=gitea-svc"
+      - "traefik.http.services.gitea-svc.loadbalancer.server.port=3000"
+
 
   db:
     image: mysql:5.7
@@ -39,6 +46,16 @@ services:
       - MYSQL_PASSWORD=gitea
       - MYSQL_DATABASE=gitea
     networks:
-      - gitea
+      - t2_proxy
     volumes:
       - ${DOCKER_CONFIG_DIR}/gitea/mysql:/var/lib/mysql
+
+
+########################### NETWORKS
+
+networks:
+  t2_proxy:
+    external:
+      name: t2_proxy
+  default:
+    driver: bridge

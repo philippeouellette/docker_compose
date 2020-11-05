@@ -15,6 +15,17 @@ services:
       - PUID=${PUID}
       - TZ=${TZ}
     restart: unless-stopped
+    networks:
+      - t2_proxy
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.jellyfin-rtr.entrypoints=https"
+      - "traefik.http.routers.jellyfin-rtr.rule=Host(`jellyfin.$DOMAINNAME`)"
+      - "traefik.http.routers.jellyfin-rtr.tls=true"
+      ## HTTP Services
+      - "traefik.http.routers.jellyfin-rtr.service=jellyfin-svc"
+      - "traefik.http.services.jellyfin-svc.loadbalancer.server.port=8096"
 
 
   transmission:
@@ -114,3 +125,14 @@ services:
     ports:
       - 6767:6767
     restart: unless-stopped
+
+
+
+########################### NETWORKS
+
+networks:
+  t2_proxy:
+    external:
+      name: t2_proxy
+  default:
+    driver: bridge

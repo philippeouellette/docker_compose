@@ -2,61 +2,68 @@ version: "3.3"
 
 services:
 
-  mariadb:
-    image: "linuxserver/mariadb:110.4.12mariabionic-ls60"
-    container_name: "nextcloud_db"
-    hostname: mariadb
+  cloud:
+    hostname: cloud
+    container_name: cloud
+    restart: always
+    image: nextcloud:latest
+    ports:
+     - 8010:80
+    links:
+      - cloud_db
+    networks:
+      - t2_proxy
     volumes:
-        - ${DOCKER_CONFIG_DIR}/nextcloud/mariadb:/config
+      - ${DOCKER_CONFIG_DIR}/cloud/cloud:/var/www/html
+      - ${NEXTCLOUD_DIR}:/var/www/html/data
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+#      - PUID=${PUID}
+#      - PGID=${PGID}
+      - TZ=${TZ}
+      - TRUSTED_PROXIES=192.168.100.0/24
+      - OVERWRITEPROTOCOL=https
+    labels:
+      - "traefik.enable=true"
+      ## TCP Routers
+      - "traefik.http.routers.cloud-rtr.entrypoints=https"
+      - "traefik.http.routers.cloud-rtr.rule=Host(`cloud.$DOMAINNAME`)"
+      - "traefik.http.routers.cloud-rtr.tls=true"
+      ## TCP Services
+      - "traefik.http.routers.cloud-rtr.service=cloud-svc"
+      - "traefik.http.services.cloud-svc.loadbalancer.server.port=80"
+
+########################################################
+
+  cloud_db:
+    image: "linuxserver/mariadb:110.4.12mariabionic-ls60"
+    container_name: "cloud_db"
+    hostname: cloud_db
+    volumes:
+        - ${DOCKER_CONFIG_DIR}/cloud/cloud_db:/config
     ports:
       - target: 3306
         published: 3306
         protocol: tcp
         mode: host
+    networks:
+      - t2_proxy
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+      - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=cloud
+      - MYSQL_USER=cloud
+#      - PUID=${PUID}
+#      - PGID=${PGID}
+      - TZ=${TZ}    
 
-#####################################################
+########################### NETWORKS
 
-  nextcloud:
-    hostname: nextcloud
-    container_name: nextcloud
-    restart: always
-    image: linuxserver/nextcloud
-    ports:
-     - 8001:443
-    links:
-      - mariadb
-    volumes:
-      - ${DOCKER_CONFIG_DIR}/nextcloud/nextcloud:/config
-      - ${NEXTCLOUD_DIR}:/data
-    restart: always
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik_proxy"
-      ## TCP Routers
-      - "traefik.tcp.routers.nextcloud-tcp.entrypoints=https"
-      - "traefik.tcp.routers.nextcloud-tcp.rule=HostSNI(`cloud.$DOMAINNAME`)"
-      - "traefik.tcp.routers.nextcloud-tcp.tls=true"
-      - "traefik.tcp.routers.nextcloud-tcp.tls.certresolver=dns-cloudflare"
-      - "traefik.tcp.routers.nextcloud-tcp.tls.passthrough=true"
-      ## TCP Services
-      - "traefik.tcp.routers.nextcloud-tcp.service=nextcloud-tcp-svc"
-      - "traefik.tcp.services.nextcloud-tcp-svc.loadbalancer.server.port=443"
-      ## dav redirection
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-
-
-########################################################
-
-
+networks:
+  t2_proxy:
+    external:
+      name: t2_proxy
+  default:
+    driver: bridge
