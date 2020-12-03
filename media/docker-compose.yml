@@ -3,7 +3,7 @@ version: "2"
 services:
 
   jellyfin:
-    image: linuxserver/jellyfin
+    image: linuxserver/jellyfin:latest
     container_name: jellyfin
     volumes:
       - ${DOCKER_CONFIG_DIR}/jellyfin:/config

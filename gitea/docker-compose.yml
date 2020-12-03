@@ -25,15 +25,15 @@ services:
        - "3000:3000"
     depends_on:
       - db
-    labels:
-      - "traefik.enable=true"
+#    labels:
+#      - "traefik.enable=false"
       ## HTTP Routers
-      - "traefik.http.routers.gitea-rtr.entrypoints=https"
-      - "traefik.http.routers.gitea-rtr.rule=Host(`gitea.$DOMAINNAME`)"
-      - "traefik.http.routers.gitea-rtr.tls=true"
+#      - "traefik.http.routers.gitea-rtr.entrypoints=https"
+#      - "traefik.http.routers.gitea-rtr.rule=Host(`gitea.$DOMAINNAME`)"
+#      - "traefik.http.routers.gitea-rtr.tls=true"
       ## HTTP Services
-      - "traefik.http.routers.gitea-rtr.service=gitea-svc"
-      - "traefik.http.services.gitea-svc.loadbalancer.server.port=3000"
+#      - "traefik.http.routers.gitea-rtr.service=gitea-svc"
+#      - "traefik.http.services.gitea-svc.loadbalancer.server.port=3000"
 
 
   db:
